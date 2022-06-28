@@ -2,11 +2,10 @@
 name = "rocketchat-message"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "MIT"
+description = "Library to send rocket chat messages"
 
 [dependencies]
-async-trait = "0.1.52"
 serde = { version = "1.0.126", features = ["derive"] }
 reqwest = { version = "0.11.4", features = ["json"] }
 anyhow = "1.0"

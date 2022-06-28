@@ -52,12 +52,6 @@ pub struct RocketChat {
     channel: String,
 }
 
-// #[async_trait]
-// pub trait RocketChattable {
-//     async fn get_new_messages(&self) -> Vec<RocketChatMessage>;
-//     fn get_channel(&self) -> String;
-// }
-
 impl RocketChat {
     /// Creates a new rocket chat client
     ///
@@ -91,9 +85,7 @@ impl RocketChat {
     /// client.send_text("Text").await?;
     /// ```
     pub async fn send_text<S: Into<String>>(&self, msg: S) -> Result<Response, Error> {
-        let msg = RocketChatMessage::new()
-            .set_channel(self.channel.clone())
-            .set_text(msg.into());
+        let msg = RocketChatMessage::new().set_text(msg.into());
 
         self.send_message(msg).await
     }
@@ -109,7 +101,7 @@ impl RocketChat {
     pub async fn send_message(&self, msg: RocketChatMessage) -> Result<Response, Error> {
         let client = reqwest::Client::new();
 
-        let msg = msg.set_channel(self.channel.clone());
+        let msg = RocketChatMessagePayload::from((msg, self.channel.clone()));
 
         let res = client
             .post(&self.webhook_url)
@@ -221,13 +213,29 @@ impl RocketChatAttachment {
     }
 }
 
+#[derive(Serialize, Default, Debug)]
+struct RocketChatMessagePayload {
+    text: Option<String>,
+    channel: Option<String>,
+    attachments: Vec<RocketChatAttachment>,
+}
+
+impl From<(RocketChatMessage, String)> for RocketChatMessagePayload {
+    fn from(message: (RocketChatMessage, String)) -> Self {
+        Self {
+            text: message.0.text,
+            channel: Some(message.1),
+            attachments: message.0.attachments,
+        }
+    }
+}
+
 /// A structure representing a rocket chat message
 #[derive(Serialize, Default, Debug)]
-#[serde(rename_all = "camelCase")]
+// #[serde(rename_all = "camelCase")]
 pub struct RocketChatMessage {
     /// Text on top of attachments
     pub text: Option<String>,
-    pub channel: Option<String>,
     /// Attachments linked to message
     pub attachments: Vec<RocketChatAttachment>,
 }
@@ -249,11 +257,6 @@ impl RocketChatMessage {
     /// ```
     pub fn set_text<S: Into<String>>(mut self, text: S) -> Self {
         self.text = Some(text.into());
-        self
-    }
-
-    fn set_channel<S: Into<String>>(mut self, channel: S) -> Self {
-        self.channel = Some(channel.into());
         self
     }
 

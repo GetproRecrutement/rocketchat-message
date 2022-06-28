@@ -20,7 +20,7 @@
 //!         .set_title("Attachment title")
 //!         .set_title_link("https://google.fr")
 //!         .set_text("Attachment text")
-//!         .set_author_name("Author name")
+//!         .set_author("Author name", None)
 //!         .set_color("#c97149")]);
 //!
 //! client.send_message(msg).await?;

@@ -40,7 +40,7 @@
 //! ```
 
 use anyhow::*;
-use reqwest::Response;
+use reqwest::blocking::Response;
 use serde::Serialize;
 
 /// A structure representing a rocket chat client
@@ -82,12 +82,12 @@ impl RocketChat {
     /// ```
     /// let client = RocketChat::new("ROCKET_CHAT_WEBHOOK_URL", "#channel");
     ///
-    /// client.send_text("Text").await?;
+    /// client.send_text("Text");
     /// ```
-    pub async fn send_text<S: Into<String>>(&self, msg: S) -> Result<Response, Error> {
+    pub fn send_text<S: Into<String>>(&self, msg: S) -> Result<Response, Error> {
         let msg = RocketChatMessage::new().set_text(msg.into());
 
-        self.send_message(msg).await
+        self.send_message(msg)
     }
 
     /// Send a rocket chat message
@@ -96,10 +96,10 @@ impl RocketChat {
     /// let client = RocketChat::new("ROCKET_CHAT_WEBHOOK_URL", "#channel");
     /// let msg = RocketChatMessage::new().set_text("Text");
     ///
-    /// client.send_message(msg).await?;
+    /// client.send_message(msg);
     /// ```
-    pub async fn send_message(&self, msg: RocketChatMessage) -> Result<Response, Error> {
-        let client = reqwest::Client::new();
+    pub fn send_message(&self, msg: RocketChatMessage) -> Result<Response, Error> {
+        let client = reqwest::blocking::Client::new();
 
         let msg = RocketChatMessagePayload::from((msg, self.channel.clone()));
 
@@ -107,7 +107,6 @@ impl RocketChat {
             .post(&self.webhook_url)
             .json(&msg)
             .send()
-            .await
             .map_err(|e| anyhow!("Request error: {:?}", e.status()))?;
 
         if res.status() == 200 {
@@ -127,11 +126,11 @@ impl RocketChat {
     ///    RocketChatMessage::new().set_text("Text2"),
     /// ];
     ///
-    /// client.send_messages(msgs).await?;
+    /// client.send_messages(msgs);
     /// ```
-    pub async fn send_messages(&self, msgs: Vec<RocketChatMessage>) -> Result<(), Error> {
+    pub fn send_messages(&self, msgs: Vec<RocketChatMessage>) -> Result<(), Error> {
         for msg in msgs {
-            self.send_message(msg).await?;
+            self.send_message(msg)?;
         }
         Ok(())
     }

@@ -195,8 +195,60 @@ impl RocketChat {
     }
 }
 
+/// A structure representing a rocket chat field for attachments
+#[derive(Serialize, Default)]
+pub struct Field {
+    /// Size of field (default false by rocket chat)
+    pub short: Option<bool>,
+    /// Title of field
+    pub title: String,
+    /// Value of field
+    pub value: String,
+}
+
+impl Field {
+    /// Create new field
+    ///
+    /// ```
+    /// let field = Field::new();
+    /// ```
+    pub fn new() -> Self {
+        Field::default()
+    }
+
+    /// Change the title of the field
+    ///
+    /// ```
+    /// let field = Field::new().set_title("Title");
+    /// ```
+    pub fn set_title<S: Into<String>>(mut self, title: S) -> Self {
+        self.title = title.into();
+        self
+    }
+
+    /// Change the value of the field
+    ///
+    /// ```
+    /// let field = Field::new().set_value("Value");
+    /// ```
+    pub fn set_value<S: Into<String>>(mut self, value: S) -> Self {
+        self.value = value.into();
+        self
+    }
+
+    /// Change the short of the field
+    ///
+    /// ```
+    /// let field = Field::new().set_short(true);
+    /// ```
+    pub fn set_short(mut self, value: bool) -> Self {
+        self.short = Some(value);
+        self
+    }
+}
+
 /// A structure representing a rocket chat attachment
-#[derive(Serialize, Default, Debug)]
+#[derive(Serialize, Default)]
 pub struct RocketChatAttachment {
     /// Title of attachment
     pub title: Option<String>,
@@ -206,8 +258,14 @@ pub struct RocketChatAttachment {
     pub color: Option<String>,
     /// Author name of attachment
     pub author_name: Option<String>,
+    /// Author icon of attachment (displayed only if author name is defined)
+    pub author_icon: Option<String>,
     /// Text of attachment
     pub text: Option<String>,
+    /// Image of attachment
+    pub image_url: Option<String>,
+    /// Fields of attachment
+    pub fields: Vec<Field>,
 }
 
 impl RocketChatAttachment {
@@ -250,13 +308,16 @@ impl RocketChatAttachment {
         self
     }
 
-    /// Change the author name of attachment
+    /// Change the author name & icon of attachment
     ///
     /// ```
-    /// let attachment = RocketChatAttachment::new().set_author_name("Author name");
+    /// let attachment = RocketChatAttachment::new().set_author("Author Name", Some("ICON_URL"));
     /// ```
-    pub fn set_author_name<S: Into<String>>(mut self, author_name: S) -> Self {
-        self.author_name = Some(author_name.into());
+    pub fn set_author<S: Into<String>>(mut self, name: S, icon: Option<S>) -> Self {
+        self.author_name = Some(name.into());
+        if let Some(icon) = icon {
+            self.author_icon = Some(icon.into());
+        }
         self
     }
 
@@ -269,9 +330,32 @@ impl RocketChatAttachment {
         self.text = Some(text.into());
         self
     }
+
+    /// Change the image of attachment
+    ///
+    /// ```
+    /// let attachment = RocketChatAttachment::new().set_image("IMAGE_URL");
+    /// ```
+    pub fn set_image<S: Into<String>>(mut self, url: S) -> Self {
+        self.image_url = Some(url.into());
+        self
+    }
+
+    /// Change the fields of attachment
+    ///
+    /// ```
+    /// let attachment = RocketChatAttachment::new().set_fields(vec![Field::new()
+    ///     .set_title("Field title")
+    ///     .set_value("Field value")
+    ///     .set_short(true)]);
+    /// ```
+    pub fn set_fields(mut self, fields: Vec<Field>) -> Self {
+        self.fields = fields;
+        self
+    }
 }
 
-#[derive(Serialize, Default, Debug)]
+#[derive(Serialize, Default)]
 struct RocketChatMessagePayload {
     text: Option<String>,
     channel: Option<String>,
@@ -289,7 +373,7 @@ impl From<(RocketChatMessage, String)> for RocketChatMessagePayload {
 }
 
 /// A structure representing a rocket chat message
-#[derive(Serialize, Default, Debug)]
+#[derive(Serialize, Default)]
 // #[serde(rename_all = "camelCase")]
 pub struct RocketChatMessage {
     /// Text on top of attachments

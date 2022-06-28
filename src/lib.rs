@@ -82,12 +82,25 @@ impl RocketChat {
     /// ```
     /// let client = RocketChat::new("ROCKET_CHAT_WEBHOOK_URL", "#channel");
     ///
-    /// client.send_text("Text");
+    /// client.send_text("Text").await?;
     /// ```
-    pub fn send_text<S: Into<String>>(&self, msg: S) -> Result<Response, Error> {
+    pub async fn send_text<S: Into<String>>(&self, msg: S) -> Result<reqwest::Response, Error> {
         let msg = RocketChatMessage::new().set_text(msg.into());
 
-        self.send_message(msg)
+        self.send_message(msg).await
+    }
+
+    /// Send simple text message (sync)
+    ///
+    /// ```
+    /// let client = RocketChat::new("ROCKET_CHAT_WEBHOOK_URL", "#channel");
+    ///
+    /// client.send_text_sync("Text");
+    /// ```
+    pub fn send_text_sync<S: Into<String>>(&self, msg: S) -> Result<Response, Error> {
+        let msg = RocketChatMessage::new().set_text(msg.into());
+
+        self.send_message_sync(msg)
     }
 
     /// Send a rocket chat message
@@ -96,9 +109,36 @@ impl RocketChat {
     /// let client = RocketChat::new("ROCKET_CHAT_WEBHOOK_URL", "#channel");
     /// let msg = RocketChatMessage::new().set_text("Text");
     ///
-    /// client.send_message(msg);
+    /// client.send_message(msg).await;
     /// ```
-    pub fn send_message(&self, msg: RocketChatMessage) -> Result<Response, Error> {
+    pub async fn send_message(&self, msg: RocketChatMessage) -> Result<reqwest::Response, Error> {
+        let client = reqwest::Client::new();
+
+        let msg = RocketChatMessagePayload::from((msg, self.channel.clone()));
+
+        let res = client
+            .post(&self.webhook_url)
+            .json(&msg)
+            .send()
+            .await
+            .map_err(|e| anyhow!("Request error: {:?}", e.status()))?;
+
+        if res.status() == 200 {
+            Ok(res)
+        } else {
+            Err(anyhow!("Response error: {}", res.status())) // Manage error if status is not 200
+        }
+    }
+
+    /// Send a rocket chat message (sync)
+    ///
+    /// ```
+    /// let client = RocketChat::new("ROCKET_CHAT_WEBHOOK_URL", "#channel");
+    /// let msg = RocketChatMessage::new().set_text("Text");
+    ///
+    /// client.send_message_sync(msg);
+    /// ```
+    pub fn send_message_sync(&self, msg: RocketChatMessage) -> Result<Response, Error> {
         let client = reqwest::blocking::Client::new();
 
         let msg = RocketChatMessagePayload::from((msg, self.channel.clone()));
@@ -126,11 +166,30 @@ impl RocketChat {
     ///    RocketChatMessage::new().set_text("Text2"),
     /// ];
     ///
-    /// client.send_messages(msgs);
+    /// client.send_messages(msgs).await?;
     /// ```
-    pub fn send_messages(&self, msgs: Vec<RocketChatMessage>) -> Result<(), Error> {
+    pub async fn send_messages(&self, msgs: Vec<RocketChatMessage>) -> Result<(), Error> {
         for msg in msgs {
-            self.send_message(msg)?;
+            self.send_message(msg).await?;
+        }
+        Ok(())
+    }
+
+    /// Send multiple messages at the same time on the same channel (sync)
+    ///
+    /// ```
+    /// let client = RocketChat::new("ROCKET_CHAT_WEBHOOK_URL", "#channel");
+    ///
+    /// let msgs = vec![
+    ///    RocketChatMessage::new().set_text("Text"),
+    ///    RocketChatMessage::new().set_text("Text2"),
+    /// ];
+    ///
+    /// client.send_messages_sync(msgs);
+    /// ```
+    pub fn send_messages_sync(&self, msgs: Vec<RocketChatMessage>) -> Result<(), Error> {
+        for msg in msgs {
+            self.send_message_sync(msg)?;
         }
         Ok(())
     }
